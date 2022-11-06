@@ -37,14 +37,17 @@ void gfx_fillCircle(uint32_t* pixels, uint32_t color, int x, int y, int radius);
 void gfx_drawRectangle(uint32_t* pixels, uint32_t color, int x, int y, int width, int height);
 void gfx_fillRectangle(uint32_t* pixels, uint32_t color, int x, int y, int width, int height);
 
-void _gfx_drawLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x1, int y1, int x2, int y2);
+void _gfx_drawLine(uint32_t* pixels, uint32_t color, int x1, int y1, int x2, int y2);
+void __gfx_drawLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x1, int y1, int x2, int y2);
 void __gfx_drawTriangleLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x1, int y1, int x2, int y2);
 void _gfx_drawScanLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x1, int x2, int y);
 void _gfx_fillTriangle(uint32_t* pixels, uint32_t color1, uint32_t color2, uint32_t color3, int x1, int y1, int x2, int y2, int x3, int y3);
 void _gfx_fillTriangleBarycentric(uint32_t* pixels, uint32_t color1, uint32_t color2, uint32_t color3, int x1, int y1, int x2, int y2, int x3, int y3);
+void _gfx_fillTriangleOLC(uint32_t* pixels, uint32_t color1, uint32_t color2, uint32_t color3, int x1, int y1, int x2, int y2, int x3, int y3);
+
 
 inline float util_lerp(float a, float b, float t) {
-    return (1 - t) * a + t * b;
+    return a + (b - a) * t;
 }
 inline int util_lerpi(int a, int b, float t) {
     return a + (b - a) * t;
@@ -77,8 +80,8 @@ int main(int argc, char** argv) {
     SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
     
-//    uint32_t* pixels = new uint32_t[WIDTH * HEIGHT];
-    uint32_t pixels[WIDTH * HEIGHT];
+    uint32_t* pixels = new uint32_t[WIDTH * HEIGHT];
+//    uint32_t pixels[WIDTH * HEIGHT];
     
     Point mouse;
     
@@ -136,7 +139,6 @@ int main(int argc, char** argv) {
     int current = 0;
     int last = 0;
     float delta = 0.0f;
-    double whole = 0.0f;
     int frames = 0;
     int timer = 0;
     SDL_Event event;
@@ -169,25 +171,40 @@ int main(int argc, char** argv) {
         last = current;
         
         
+        int pitch;
+        SDL_LockTexture(texture, nullptr, (void**)&pixels, &pitch);
+        
         gfx_clear(pixels, 0xff);
         
-//        tris[1].p[2].x = mouse.x;
-//        tris[1].p[2].y = mouse.y;
-//        tris[2].p[1].x = mouse.x;
-//        tris[2].p[1].y = mouse.y;
-//        tris[5].p[2].x = mouse.x;
-//        tris[5].p[2].y = mouse.y;
-//        tris[6].p[2].x = mouse.x;
-//        tris[6].p[2].y = mouse.y;
-//        tris[7].p[2].x = mouse.x;
-//        tris[7].p[2].y = mouse.y;
-//        tris[13].p[0].x = mouse.x;
-//        tris[13].p[0].y = mouse.y;
+        tris[1].p[2].x  = mouse.x - 5;
+        tris[1].p[2].y  = mouse.y - 5;
+        tris[2].p[1].x  = mouse.x - 5;
+        tris[2].p[1].y  = mouse.y - 5;
+        tris[5].p[2].x  = mouse.x - 5;
+        tris[5].p[2].y  = mouse.y - 5;
+        tris[6].p[2].x  = mouse.x - 5;
+        tris[6].p[2].y  = mouse.y - 5;
+        tris[7].p[2].x  = mouse.x - 5;
+        tris[7].p[2].y  = mouse.y - 5;
+        tris[13].p[0].x = mouse.x - 5;
+        tris[13].p[0].y = mouse.y - 5;
         
         float size = 128.f;
         float offsetX = GFX_WIDTH / 2.f;
         float offsetY = GFX_HEIGHT / 2.f;
         
+
+        _gfx_fillTriangle(pixels,
+                          0xff0000ff,
+                          0x00ff00ff,
+                          0x0000ffff,
+                          mouse.x - 5, mouse.y - 5,
+                          500, 300,
+                          100, 400);
+        
+        _gfx_drawLine(pixels, 0x00ff00ff, 500, 300, 100, 400);
+        _gfx_drawLine(pixels, 0x0000ffff, 100, 400, mouse.x - 5, mouse.y - 5);
+        _gfx_drawLine(pixels, 0xff0000ff, mouse.x - 5, mouse.y - 5, 500, 300);
 
 //        _gfx_fillTriangle(pixels,
 //                          0xff0000ff,
@@ -196,15 +213,21 @@ int main(int argc, char** argv) {
 //                          1 + 0, 0,
 //                          1 + 16, 0,
 //                          1 + 0, 16);
-        
 //        _gfx_fillTriangle(pixels,
 //                          0xff0000ff,
 //                          0x00ff00ff,
 //                          0x0000ffff,
-//                          GFX_WIDTH / 2, GFX_HEIGHT / 2 - GFX_HEIGHT / 4,
-//                          GFX_WIDTH / 2 - GFX_WIDTH / 4, GFX_HEIGHT / 2 + GFX_HEIGHT / 4,
-//                          GFX_WIDTH / 2 + GFX_WIDTH / 4, GFX_HEIGHT / 2 + GFX_HEIGHT / 4);
-
+//                          256 + 0, 256 + 0,
+//                          256 - 16, 256 + 8,
+//                          256 + 16, 256 + 8);
+//        _gfx_fillTriangle(pixels,
+//                          0xff0000ff,
+//                          0x00ff00ff,
+//                          0x0000ffff,
+//                          3, 0,
+//                          3, GFX_HEIGHT - 1,
+//                          3 + GFX_WIDTH - 1, 0);
+        
 //        _gfx_fillTriangle(pixels,
 //                          0xff0000ff,
 //                          0x00ff00ff,
@@ -246,7 +269,7 @@ int main(int argc, char** argv) {
 //                          0, 512);
 
         
-        for (int re = 0; re < 1; re++) {
+        for (int re = 0; re < 0; re++) {
             for (int i = 0; i < triangleCount; i++) {
                 
 //                __gfx_drawTriangle__(pixels, 0xd02010ff, 0x10e033ff, 0x1030f0ff,
@@ -312,12 +335,19 @@ int main(int argc, char** argv) {
 //        gfx_drawPoint(pixels, 0x00ff00ff, 20, 23);
 //        gfx_drawPoint(pixels, 0x00ff00ff, 20, 24);
         
-        pixels[100 + GFX_WIDTH*(GFX_HEIGHT-1)] = 0xff0000ff;
-        SDL_UpdateTexture(texture, NULL, pixels, WIDTH * sizeof(uint32_t));
+//        gfx_drawLine(pixels, 0xffffffff, 20, 200, 100, 199);
+//        _gfx_fillTriangle(pixels, 0xff0000ff, 0x00fff00ff, 0x0000ffff,
+//                          300, GFX_HEIGHT - 100,
+//                          200, GFX_HEIGHT-2,
+//                          500, GFX_HEIGHT-1);
+        
+//        pixels[100 + GFX_WIDTH*(GFX_HEIGHT-1)] = 0xff0000ff;
+//        SDL_UpdateTexture(texture, NULL, pixels, WIDTH * sizeof(uint32_t));
         
         // FOR LOCKING/UNLOCKING USE DYNAMIC PIXEL ARRAY INSTEAD OF STATIC (uint32_t* pixel = new uint32_t[w * h])
 //        SDL_UnlockTexture(texture);
         
+        SDL_UnlockTexture(texture);
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
@@ -335,9 +365,10 @@ int main(int argc, char** argv) {
 }
 
 void gfx_clear(uint32_t* pixels, uint32_t color) {
-    for (uint32_t i = 0; i < GFX_WIDTH * GFX_HEIGHT; i++) {
-        pixels[i] = color;
-    }
+//    for (uint32_t i = 0; i < GFX_WIDTH * GFX_HEIGHT; i++) {
+//        pixels[i] = color;
+//    }
+    memset(pixels, 0, GFX_WIDTH*GFX_HEIGHT*sizeof(uint32_t));
 }
 void gfx_init(size_t w, size_t h) {
     GFX_WIDTH = w;
@@ -376,7 +407,39 @@ void gfx_fillCircle(uint32_t* pixels, uint32_t color, int x, int y, int radius);
 void gfx_drawRectangle(uint32_t* pixels, uint32_t color, int x, int y, int width, int height);
 void gfx_fillRectangle(uint32_t* pixels, uint32_t color, int x, int y, int width, int height);
 
-void _gfx_drawLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x1, int y1, int x2, int y2) {
+void _gfx_drawLine(uint32_t* pixels, uint32_t color, int x1, int y1, int x2, int y2) {
+    int diagonalDistance = std::max(std::abs(x2 - x1), std::abs(y2 - y1));
+    if(y1 > y2) {
+        std::swap(y1, y2);
+        std::swap(x1, x2);
+    }
+    if(x1 > x2) {
+    }
+//    for(int i = 0; i < diagonalDistance; i++) {
+//        float t = (diagonalDistance == 0) ? 0 : i / (float)diagonalDistance;
+//        int x = std::round(util_lerp(x1, x2, t));
+//        int y = std::round(util_lerp(y1, y2, t));
+//
+//        pixels[x + y * GFX_WIDTH] = color;
+//    }
+    
+//    if(color != 0xff0000ff) return;
+    
+    float tt = 1 / (float)(y2 - y1);
+    std::cout << tt << std::endl;
+    int end = y2 - y1 + 1;
+    float mx = (x2 - x1) / (float)(y2 - y1 + 1);
+    float x = x1;
+    
+    for(int i = 0; i < end; i++) {
+        float t = end == 0 ? 0 : i / (float)(end);
+        int x = ((util_lerp(x1, x2, t)));
+        pixels[(int)x + (i + y1) * GFX_WIDTH] = 0xffffffff;
+    }
+//    pixels[x1 + (y1) * GFX_WIDTH] = 0xffffffff;
+//    pixels[x2 + (y2) * GFX_WIDTH] = 0xffffffff;
+}
+void __gfx_drawLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x1, int y1, int x2, int y2) {
 //    if(x1 > x2 && y1 > y2) {
 //        int tempX = x1;
 //        x1 = x2;
@@ -488,7 +551,12 @@ void _gfx_drawScanLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x
     float bb = (color1 >>  8) & 0xff;
     float aa = (color1 >>  0) & 0xff;
     uint32_t color = color1;
+    
     for(int i = x1; i < x2; i++) {
+//        if(pixels[i + _y] != 0xff) {
+//            pixels[i + _y] = 0xffffffff;
+//            continue;
+//        }
 //        uint32_t color = (util_lerpi((color1 >> 24) & 0xff, (color2 >> 24) & 0xff, (x1 - i) / (float)(x1 - x2)) << 24) +
 //                         (util_lerpi((color1 >> 16) & 0xff, (color2 >> 16) & 0xff, (x1 - i) / (float)(x1 - x2)) << 16) +
 //                         (util_lerpi((color1 >>  8) & 0xff, (color2 >>  8) & 0xff, (x1 - i) / (float)(x1 - x2)) <<  8) +
@@ -526,6 +594,11 @@ void _gfx_drawScanLine(uint32_t* pixels, uint32_t color1, uint32_t color2, int x
 }
 
 void _gfx_fillTriangle(uint32_t* pixels, uint32_t color1, uint32_t color2, uint32_t color3, int x1, int y1, int x2, int y2, int x3, int y3) {
+
+//    y1+=1;
+//    y2+=1;
+//    y3+=1;
+    
     if(y1 > y3) {
         int tempX = x1;
         x1 = x3;
@@ -560,39 +633,189 @@ void _gfx_fillTriangle(uint32_t* pixels, uint32_t color1, uint32_t color2, uint3
         color3 = tempColor;
     }
     
+//    _gfx_drawLine(pixels, color1, color2, x1, y1, x2, y2);
+//    _gfx_drawLine(pixels, color2, color3, x2, y2, x3, y3);
+//    _gfx_drawLine(pixels, color3, color1, x3, y3, x1, y1);
     
     float x_1 = x1;
-    float m1 = (x3 - x1) / (float)(y3 - y1);
-    
-    if(y1 != y2) {
+    float m1 = 0;
+    if(y3 - y1) m1 = (x3 - x1) / (float)((y3) - y1);
+//
+    if(1) {
         float x_2 = x1;
-        float m2 = (x2 - x1) / (float)(y2 - y1);
+        float m2 = 0;
+        if(y2 - y1) m2 = (x2 - x1) / (float)(y2 - y1);
         
         for(int scanline = y1; scanline < y2; scanline++) {
 //        uint32_t lerpColor1 = _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3);
 //        uint32_t lerpColor2 = _util_getColorLerpBetweenPoints(x_2, scanline, x1, y1, x2, y2, color1, color2);
             
-            _gfx_drawScanLine(pixels, _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3), _util_getColorLerpBetweenPoints(x_2, scanline, x1, y1, x2, y2, color1, color2), x_1, x_2, scanline);
-//        _gfx_drawLine(pixels, lerpColor1, lerpColor2, x_1, scanline, x_2, scanline);
             
-            x_1 += m1;
-            x_2 += m2;
+            x_1 = /* (y3 - y1 == 0) ? x1 : */ std::roundf(util_lerp(x1, x3, (scanline - y1) / (float)(y3 - y1)));
+            x_2 = /* (y2 - y1 == 0) ? x1 : */ std::roundf(util_lerp(x1, x2, (scanline - y1 + 1) / (float)(y2 - y1 + 1)));
+            
+            _gfx_drawScanLine(pixels,
+                              _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3),
+                              _util_getColorLerpBetweenPoints(x_2, scanline + 1, x1, y1, x2, y2 + 1, color1, color2),
+                              x_1, x_2, scanline);
+            
+//            x_1 += m1;
+//            x_2 += m2;
         }
     }
-    
-    if(y2 != y3) {
+//
+    if(1) {
         float x_3 = x2;
-        float m3 = (x3 - x2) / (float)(y3 - y2);
+        float m3 = 0;
+        if(y3 - y2) m3 = (x3 - x2) / (float)(((y3) - (y2)));
+        
         for(int scanline = y2; scanline <= y3; scanline++) {
 //        uint32_t lerpColor1 = _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3);
 //        uint32_t lerpColor2 = _util_getColorLerpBetweenPoints(x_3, scanline, x2, y2, x3, y3, color2, color3);
+            x_1 = (y3 - y1 == 0) ? x1 : std::roundf(util_lerp(x1, x3, (scanline - y1) / (float)(y3 - y1)));
+            x_3 = (y3 - y2 == 0) ? x2 : std::roundf(util_lerp(x2, x3, (scanline - y2) / (float)(y3 - y2)));
+
+            _gfx_drawScanLine(pixels,
+                              _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, (y3), color1, color3),
+                              _util_getColorLerpBetweenPoints(x_3, scanline, x2, y2, x3, (y3), color2, color3),
+                              x_1, x_3, scanline);
             
-            _gfx_drawScanLine(pixels, _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3), _util_getColorLerpBetweenPoints(x_3, scanline, x2, y2, x3, y3, color2, color3), x_1, x_3, scanline);
-//        _gfx_drawLine(pixels, lerpColor1, lerpColor2, x_1, scanline, x_3, scanline);
-            
-            x_1 += m1;
-            x_3 += m3;
+//            x_1 += m1;
+//            x_3 += m3;
         }
+    }
+}
+
+void _gfx_fillTriangleOLC(uint32_t* pixels, uint32_t color1, uint32_t color2, uint32_t color3, int x1, int y1, int x2, int y2, int x3, int y3) {
+    auto drawline = [&](int sx, int ex, int ny) { for (int i = sx; i <= ex; i++) gfx_drawPoint(pixels, color1, i, ny); };
+
+    int t1x, t2x, y, minx, maxx, t1xp, t2xp;
+    bool changed1 = false;
+    bool changed2 = false;
+    int signx1, signx2, dx1, dy1, dx2, dy2;
+    int e1, e2;
+    // Sort vertices
+    if (y1>y2) {std::swap(y1, y2); std::swap(x1, x2); }
+    if (y1>y3) {std::swap(y1, y3); std::swap(x1, x3); }
+    if (y2>y3) {std::swap(y2, y3); std::swap(x2, x3); }
+
+    t1x = t2x = x1; y = y1;   // Starting points
+    dx1 = (int)(x2 - x1);
+    if (dx1<0) { dx1 = -dx1; signx1 = -1; }    else signx1 = 1;
+    dy1 = (int)(y2 - y1);
+
+    dx2 = (int)(x3 - x1);
+    if (dx2<0) { dx2 = -dx2; signx2 = -1; } else signx2 = 1;
+    dy2 = (int)(y3 - y1);
+
+    if (dy1 > dx1) { std::swap(dx1, dy1); changed1 = true; }
+    if (dy2 > dx2) { std::swap(dy2, dx2); changed2 = true; }
+
+    e2 = (int)(dx2 >> 1);
+    // Flat top, just process the second half
+//    if (y1 == y2) goto next;
+    e1 = (int)(dx1 >> 1);
+
+    for (int i = 0; i < dx1;) {
+        t1xp = 0; t2xp = 0;
+        if (t1x<t2x) { minx = t1x; maxx = t2x; }
+        else { minx = t2x; maxx = t1x; }
+        // process first line until y value is about to change
+        while (i<dx1) {
+            i++;
+            e1 += dy1;
+            while (e1 >= dx1) {
+                e1 -= dx1;
+                if (changed1) t1xp = signx1;//t1x += signx1;
+                else          goto next1;
+            }
+            if (changed1) break;
+            else t1x += signx1;
+        }
+        // Move line
+    next1:
+        // process second line until y value is about to change
+        while (1) {
+            e2 += dy2;
+            while (e2 >= dx2) {
+                e2 -= dx2;
+                if (changed2) t2xp = signx2;//t2x += signx2;
+                else          goto next2;
+            }
+            if (changed2)     break;
+            else              t2x += signx2;
+        }
+    next2:
+        if (minx>t1x) minx = t1x;
+        if (minx>t2x) minx = t2x;
+        if (maxx<t1x) maxx = t1x;
+        if (maxx<t2x) maxx = t2x;
+        drawline(minx, maxx, y);    // Draw line from min to max points found on the y
+                                    // Now increase y
+        if (!changed1) t1x += signx1;
+        t1x += t1xp;
+        if (!changed2) t2x += signx2;
+        t2x += t2xp;
+        y += 1;
+        if (y == y2) break;
+
+    }
+next:
+    // Second half
+    dx1 = (int)(x3 - x2); if (dx1<0) { dx1 = -dx1; signx1 = -1; }
+    else signx1 = 1;
+    dy1 = (int)(y3 - y2);
+    t1x = x2;
+
+    if (dy1 > dx1) {   // swap values
+        std::swap(dy1, dx1);
+        changed1 = true;
+    }
+    else changed1 = false;
+
+    e1 = (int)(dx1 >> 1);
+
+    for (int i = 0; i <= dx1; i++) {
+        t1xp = 0; t2xp = 0;
+        if (t1x<t2x) { minx = t1x; maxx = t2x; }
+        else { minx = t2x; maxx = t1x; }
+        // process first line until y value is about to change
+        while (i<dx1) {
+            e1 += dy1;
+            while (e1 >= dx1) {
+                e1 -= dx1;
+                if (changed1) { t1xp = signx1; break; }//t1x += signx1;
+                else          goto next3;
+            }
+            if (changed1) break;
+            else                t1x += signx1;
+            if (i<dx1) i++;
+        }
+    next3:
+        // process second line until y value is about to change
+        while (t2x != x3) {
+            e2 += dy2;
+            while (e2 >= dx2) {
+                e2 -= dx2;
+                if (changed2) t2xp = signx2;
+                else          goto next4;
+            }
+            if (changed2)     break;
+            else              t2x += signx2;
+        }
+    next4:
+
+        if (minx>t1x) minx = t1x;
+        if (minx>t2x) minx = t2x;
+        if (maxx<t1x) maxx = t1x;
+        if (maxx<t2x) maxx = t2x;
+        drawline(minx, maxx, y);
+        if (!changed1) t1x += signx1;
+        t1x += t1xp;
+        if (!changed2) t2x += signx2;
+        t2x += t2xp;
+        y += 1;
+        if (y>y3) return;
     }
 }
 
@@ -613,6 +836,32 @@ void _gfx_fillTriangleBarycentric(uint32_t* pixels, uint32_t color1, uint32_t co
     Vector2 p1{ float(x1), float(y1) };
     Vector2 p2{ float(x2), float(y2) };
     Vector2 p3{ float(x3), float(y3) };
+        
+    if(p1.y > p3.y) {
+        Vector2 tempV = p3;
+        p1 = p3;
+        p3 = tempV;
+        uint32_t tempColor = color1;
+        color1 = color3;
+        color3 = tempColor;
+    }
+    if(p1.y > p2.y) {
+        Vector2 tempV = p1;
+        p1 = p2;
+        p2 = tempV;
+        uint32_t tempColor = color1;
+        color1 = color2;
+        color2 = tempColor;
+    }
+    else if(p2.y > p3.y) {
+        Vector2 tempV = p2;
+        p2 = p3;
+        p3 = tempV;
+        uint32_t tempColor = color2;
+        color2 = color3;
+        color3 = tempColor;
+    }
+    
     float k = edgeF(p1, p2, p3);
 
     for (int y = minY; y <= maxY; y++) {
@@ -668,3 +917,96 @@ void util_swap(int* a, int* b) {
     *a = *b;
     *b = temp;
 }
+
+
+/*
+
+ //    y1+=1;
+ //    y2+=1;
+ //    y3+=1;
+     
+     if(y1 > y3) {
+         int tempX = x1;
+         x1 = x3;
+         x3 = tempX;
+         int tempY = y1;
+         y1 = y3;
+         y3 = tempY;
+         uint32_t tempColor = color1;
+         color1 = color3;
+         color3 = tempColor;
+     }
+     if(y1 > y2) {
+         int tempX = x1;
+         x1 = x2;
+         x2 = tempX;
+         int tempY = y1;
+         y1 = y2;
+         y2 = tempY;
+         uint32_t tempColor = color1;
+         color1 = color2;
+         color2 = tempColor;
+     }
+     else if(y2 > y3) {
+         int tempX = x2;
+         x2 = x3;
+         x3 = tempX;
+         int tempY = y2;
+         y2 = y3;
+         y3 = tempY;
+         uint32_t tempColor = color2;
+         color2 = color3;
+         color3 = tempColor;
+     }
+     
+     
+     float x_1 = x1;
+     float m1 = 0;
+     if(y3 - y1) m1 = (x3 - x1) / (float)((y3) - y1);
+ //
+     if(y1 != y2) {
+         float x_2 = x1;
+         float m2 = 0;
+         if(y2 - y1) m2 = (x2 - x1) / (float)(y2 - y1);
+         
+         for(int scanline = y1; scanline < y2; scanline++) {
+ //        uint32_t lerpColor1 = _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3);
+ //        uint32_t lerpColor2 = _util_getColorLerpBetweenPoints(x_2, scanline, x1, y1, x2, y2, color1, color2);
+             
+ //            x_1 = lerp(x1, x3, (y1 - scanline) / (float)(y1 - y3));
+ //            x_2 = lerp(x1, x2, (y1 - scanline) / (float)(y1 - y2));
+             _gfx_drawScanLine(pixels,
+                               _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3),
+                               _util_getColorLerpBetweenPoints(x_2, scanline, x1, y1, x2, y2, color1, color2),
+                               x_1, x_2, scanline);
+             
+             if(scanline == y2 -1) {
+ //                std::cout << "AAA";
+             }
+             x_1 += m1;
+             x_2 += m2;
+         }
+     }
+ //
+     if(y2 != y3) {
+         float x_3 = x2;
+         float m3 = 0;
+         if(y3 - y2) m3 = (x3 - x2) / (float)(((y3) - (y2)));
+         
+         for(int scanline = y2; scanline < y3; scanline++) {
+ //        uint32_t lerpColor1 = _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3);
+ //        uint32_t lerpColor2 = _util_getColorLerpBetweenPoints(x_3, scanline, x2, y2, x3, y3, color2, color3);
+ //            x_1 = lerp(x1, x3, (y1 - scanline) / (float)(y1 - y3));
+ //            x_3 = lerp(x2, x3, (y2 - scanline) / (float)(y2 - y3));
+
+             _gfx_drawScanLine(pixels,
+                               _util_getColorLerpBetweenPoints(x_1, scanline, x1, y1, x3, y3, color1, color3),
+                               _util_getColorLerpBetweenPoints(x_3, scanline, x2, y2, x3, y3, color2, color3),
+                               x_1, x_3, scanline);
+             
+             x_1 += m1;
+             x_3 += m3;
+         }
+     }
+ 
+ */
